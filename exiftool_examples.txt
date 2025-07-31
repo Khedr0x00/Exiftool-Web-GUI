@@ -1,0 +1,127 @@
+[
+    {
+        "name": "Basic Metadata Extraction",
+        "description": "Extracts all standard metadata from a single image file. Useful for initial reconnaissance.",
+        "command": "exiftool image.jpg"
+    },
+    {
+        "name": "Extract All Tags (including duplicates and unknown)",
+        "description": "Extracts all available metadata, including duplicate and unknown tags, providing a comprehensive view. Essential for deep forensic analysis.",
+        "command": "exiftool -a -u -G1 image.jpg"
+    },
+    {
+        "name": "Extract GPS Information",
+        "description": "Specifically extracts GPS coordinates and related information from a geotagged image. Critical for location intelligence.",
+        "command": "exiftool -GPSLatitude -GPSLongitude -GPSAltitude image.jpg"
+    },
+    {
+        "name": "Extract Timestamps (Creation, Modification, Access)",
+        "description": "Retrieves various timestamps associated with a file, which can be crucial for timeline analysis in incident response.",
+        "command": "exiftool -FileModifyDate -FileCreateDate -CreateDate -DateTimeOriginal image.jpg"
+    },
+    {
+        "name": "Extract Software/OS Information",
+        "description": "Identifies the software or operating system used to create or modify a file, potentially revealing system vulnerabilities.",
+        "command": "exiftool -Software -Make -Model -ExifToolVersion image.jpg"
+    },
+    {
+        "name": "Extract Embedded Data (e.g., thumbnails, documents)",
+        "description": "Extracts embedded data such as thumbnails, previews, or even other embedded documents from a file. Useful for finding hidden information.",
+        "command": "exiftool -ee -U image.jpg"
+    },
+    {
+        "name": "Output Metadata as JSON",
+        "description": "Outputs all metadata in JSON format, making it easy to parse and integrate with other tools or scripts for automated analysis.",
+        "command": "exiftool -json image.jpg"
+    },
+    {
+        "name": "Output Metadata as CSV",
+        "description": "Generates a Comma Separated Values (CSV) file of metadata, ideal for spreadsheet analysis or database import.",
+        "command": "exiftool -csv image.jpg > output.csv"
+    },
+    {
+        "name": "Output Metadata as HTML",
+        "description": "Creates an HTML report of metadata, useful for easy viewing in a web browser.",
+        "command": "exiftool -html image.jpg > output.html"
+    },
+    {
+        "name": "Recursively Scan a Directory for Metadata",
+        "description": "Scans all files within a specified directory and its subdirectories, collecting metadata from all supported file types. Essential for bulk analysis.",
+        "command": "exiftool -r /path/to/directory"
+    },
+    {
+        "name": "Delete All Metadata (Redaction)",
+        "description": "Permanently removes ALL metadata from a file. Use with extreme caution as this action is irreversible and can impact file integrity for some formats.",
+        "command": "exiftool -all= image.jpg"
+    },
+    {
+        "name": "Modify Author Tag",
+        "description": "Changes the 'Author' tag in a document or image. Useful for testing metadata manipulation or anonymization.",
+        "command": "exiftool -Author=\"Anonymous Hacker\" document.pdf"
+    },
+    {
+        "name": "Change Creation Date",
+        "description": "Modifies the creation date of a file's metadata. Can be used in forensic scenarios to adjust timelines or for privacy.",
+        "command": "exiftool -CreateDate=\"2024:01:01 12:00:00\" image.jpg"
+    },
+    {
+        "name": "Extract Metadata from a PDF Document",
+        "description": "Extracts metadata specific to PDF files, such as author, creator, producer, and modification dates. Useful for document forensics.",
+        "command": "exiftool document.pdf"
+    },
+    {
+        "name": "Extract Metadata from a Video File",
+        "description": "Retrieves metadata from video files, including codec information, creation dates, and camera details.",
+        "command": "exiftool video.mp4"
+    },
+    {
+        "name": "List Supported File Types",
+        "description": "Lists all file types that Exiftool can read or write metadata for. Helps in understanding the tool's capabilities.",
+        "command": "exiftool -listf"
+    },
+    {
+        "name": "List All Tag Groups",
+        "description": "Displays all tag groups recognized by Exiftool, which can help in organizing and understanding metadata structures.",
+        "command": "exiftool -listg"
+    },
+    {
+        "name": "Read Compressed Data (e.g., from ZIP files)",
+        "description": "Allows Exiftool to read metadata from files contained within compressed archives like ZIP files without extraction.",
+        "command": "exiftool -z archive.zip"
+    },
+    {
+        "name": "Process Only Specific File Extensions",
+        "description": "Restricts processing to files with specified extensions (e.g., only JPG and PNG files in a directory).",
+        "command": "exiftool -ext jpg -ext png /path/to/directory"
+    },
+    {
+        "name": "Verbose Output",
+        "description": "Provides more detailed output during processing, showing warnings and processing steps. Useful for debugging.",
+        "command": "exiftool -v image.jpg"
+    },
+    {
+        "name": "Quiet Output",
+        "description": "Suppresses warnings and minor errors, showing only the essential output. Useful for scripting.",
+        "command": "exiftool -q image.jpg"
+    },
+    {
+        "name": "Preserve Original File Timestamp",
+        "description": "When modifying a file, this option preserves the original file modification date/time.",
+        "command": "exiftool -P -Comment=\"Updated\" image.jpg"
+    },
+    {
+        "name": "Overwrite Original File (No Backup)",
+        "description": "When writing metadata, this option overwrites the original file directly without creating a backup. Use with extreme caution.",
+        "command": "exiftool -overwrite_original -Artist=\"New Artist\" image.jpg"
+    },
+    {
+        "name": "Extract Metadata to a New File",
+        "description": "Extracts metadata and writes it to a new file, using the original filename with a new extension (e.g., image.json).",
+        "command": "exiftool -json -w %f.json image.jpg"
+    },
+    {
+        "name": "Extract Metadata from a Web URL",
+        "description": "Exiftool can sometimes extract metadata directly from files available via HTTP/HTTPS URLs.",
+        "command": "exiftool https://example.com/image.jpg"
+    }
+]

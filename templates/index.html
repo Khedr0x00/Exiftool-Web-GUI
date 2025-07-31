@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exiftool Web GUI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+        }
+        .tab-button.active {
+            background-color: #3498DB; /* Peter River Blue */
+            color: black;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Custom scrollbar for output area */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #2d3748; /* Darker track */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4a5568; /* Grey thumb */
+            border-radius: 10px;
+            border: 3px solid #2d3748; /* Padding around thumb */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* Lighter grey on hover */
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.7); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #2d3748;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            color: #e2e8f0;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #e2e8f0;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .status-message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status-message.success {
+            background-color: #28a745; /* Green */
+            color: white;
+        }
+        .status-message.error {
+            background-color: #dc3545; /* Red */
+            color: white;
+        }
+        .status-message.info {
+            background-color: #007bff; /* Blue */
+            color: white;
+        }
+        .status-message.warning {
+            background-color: #ffc107; /* Yellow */
+            color: black;
+        }
+        .installation-output {
+            background-color: #1a202c;
+            color: #4CAF50; /* Green text for terminal-like output */
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Cascadia Code', 'Fira Code', 'monospace';
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border: 1px solid #4a5568;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+    <div class="container mx-auto p-4 flex-grow">
+        <h1 class="text-4xl font-bold text-center mb-8 text-blue-400">Exiftool Web GUI</h1>
+
+        <!-- Tab Buttons -->
+        <div class="flex justify-center mb-6">
+            <button class="tab-button px-6 py-3 rounded-l-lg bg-gray-700 hover:bg-gray-600 transition-colors duration-200 active" onclick="openTab(event, 'exiftool-options')">Exiftool Options</button>
+            <button class="tab-button px-6 py-3 bg-gray-700 hover:bg-gray-600 transition-colors duration-200" onclick="openTab(event, 'examples')">Examples</button>
+            <button class="tab-button px-6 py-3 rounded-r-lg bg-gray-700 hover:bg-gray-600 transition-colors duration-200" onclick="openTab(event, 'installation')">Installation</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="exiftool-options" class="tab-content active bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Target Section -->
+                <div class="col-span-1 md:col-span-2 p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Target Configuration</h2>
+                    <div class="mb-4">
+                        <label for="target_file_upload" class="block text-gray-300 text-sm font-bold mb-2">Upload Target File:</label>
+                        <input type="file" id="target_file_upload" class="block w-full text-sm text-gray-400
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-500 file:text-white
+                            hover:file:bg-blue-600 cursor-pointer" />
+                        <p id="uploaded_file_info" class="text-sm text-gray-400 mt-2"></p>
+                        <input type="hidden" id="uploaded_file_id" value="">
+                    </div>
+                    <div class="mb-4">
+                        <label for="target_path_entry" class="block text-gray-300 text-sm font-bold mb-2">Target Path / URL (e.g., image.jpg, /path/to/dir, http://example.com/file.pdf):</label>
+                        <input type="text" id="target_path_entry" class="shadow appearance-none border border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="e.g., image.jpg or /path/to/images">
+                    </div>
+                </div>
+
+                <!-- Read Options -->
+                <div class="p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Read Options</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="read_all_tags_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-a (All Tags)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="group_info_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-G (Group Info)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="short_output_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-s (Short Output)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="unknown_tags_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-u (Unknown Tags)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="extract_embedded_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-ee (Extract Embedded)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="hex_output_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-H (Hex Output)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="list_unknown_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-l (List Unknown)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="list_xmp_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-listx (List XMP)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="list_filetypes_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-listf (List File Types)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="list_groups_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-listg (List Groups)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="list_directories_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-listd (List Directories)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Write/Modify/Delete Options -->
+                <div class="p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Modify/Delete Options <span class="text-red-400 text-sm">(Use with caution!)</span></h2>
+                    <div class="mb-4">
+                        <label for="custom_tag_write_entry" class="block text-gray-300 text-sm font-bold mb-2">Write/Modify Tag (e.g., "-Artist=New Name"):</label>
+                        <input type="text" id="custom_tag_write_entry" class="shadow appearance-none border border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder='e.g., "-Artist=New Name"'>
+                        <p class="text-xs text-gray-400 mt-1">Remember to quote values with spaces. This will modify the original file unless -overwrite_original is not used.</p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="delete_all_metadata_var" class="form-checkbox h-5 w-5 text-red-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-all= (Delete All Metadata)</span>
+                        </label>
+                        <p class="text-xs text-red-400 mt-1">WARNING: This will remove ALL metadata from the target file. Use with extreme caution!</p>
+                    </div>
+                </div>
+
+                <!-- Output Options -->
+                <div class="p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Output Options</h2>
+                    <div class="mb-4">
+                        <label for="output_format_select" class="block text-gray-300 text-sm font-bold mb-2">Output Format:</label>
+                        <select id="output_format_select" class="block w-full py-2 px-3 border border-gray-700 bg-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-200">
+                            <option value="">None (Default Text)</option>
+                            <option value="-json">JSON (-json)</option>
+                            <option value="-xml">XML (-xml)</option>
+                            <option value="-csv">CSV (-csv)</option>
+                            <option value="-html">HTML (-html)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="output_file_entry" class="block text-gray-300 text-sm font-bold mb-2">Save Output to File (e.g., output.txt or %f.json):</label>
+                        <input type="text" id="output_file_entry" class="shadow appearance-none border border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="e.g., metadata.txt or %f.json">
+                        <p class="text-xs text-gray-400 mt-1">Use %f for original filename, %d for directory name.</p>
+                    </div>
+                </div>
+
+                <!-- Advanced/Forensic Options -->
+                <div class="p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Advanced / Forensic Options</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="recurse_subdirs_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-r (Recurse Subdirectories)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="read_compressed_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-z (Read Compressed)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="fast_processing_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-fast (Faster Processing)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="preserve_datetime_var" class="form-checkbox h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-P (Preserve Date/Time)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" id="overwrite_original_var" class="form-checkbox h-5 w-5 text-red-600 bg-gray-700 border-gray-600 rounded">
+                            <span class="ml-2 text-gray-300">-overwrite_original (Overwrite Original)</span>
+                        </label>
+                    </div>
+                    <div class="mb-4 mt-4">
+                        <label for="extension_filter_entry" class="block text-gray-300 text-sm font-bold mb-2">Filter by Extension (e.g., jpg, pdf):</label>
+                        <input type="text" id="extension_filter_entry" class="shadow appearance-none border border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="e.g., jpg or pdf">
+                        <p class="text-xs text-gray-400 mt-1">Processes only files with the specified extension(s). Use comma for multiple: `jpg,png`</p>
+                    </div>
+                </div>
+
+                <!-- Verbosity Options -->
+                <div class="p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Verbosity</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="verbosity_options" id="verbose_var" value="-v" class="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600">
+                            <span class="ml-2 text-gray-300">Verbose (-v)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="verbosity_options" id="quiet_var" value="-q" class="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600">
+                            <span class="ml-2 text-gray-300">Quiet (-q)</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="verbosity_options" id="default_verbosity_var" value="" class="form-radio h-5 w-5 text-blue-600 bg-gray-700 border-gray-600" checked>
+                            <span class="ml-2 text-gray-300">Default</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Custom Options -->
+                <div class="col-span-1 md:col-span-2 p-4 border border-gray-700 rounded-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Custom Exiftool Options</h2>
+                    <label for="custom_options_entry" class="block text-gray-300 text-sm font-bold mb-2">Add any other Exiftool options here (e.g., -n -charset latin1):</label>
+                    <input type="text" id="custom_options_entry" class="shadow appearance-none border border-gray-700 rounded w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" placeholder="e.g., -n -charset latin1">
+                    <p class="text-xs text-gray-400 mt-1">These options will be appended directly to the command.</p>
+                </div>
+            </div>
+
+            <!-- Generated Command & Run Button -->
+            <div class="mt-8 p-4 border border-gray-700 rounded-lg bg-gray-700">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-300">Generated Command</h2>
+                <div class="bg-gray-900 p-4 rounded-md mb-4 overflow-x-auto">
+                    <code id="generated_command" class="text-green-400">exiftool</code>
+                </div>
+                <button id="run_exiftool_button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i data-lucide="play" class="w-5 h-5"></i> Run Exiftool
+                </button>
+            </div>
+
+            <!-- Output Area -->
+            <div class="mt-8">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-300">Output</h2>
+                <div id="output_area" class="bg-gray-900 p-4 rounded-lg shadow-inner h-96 overflow-y-auto custom-scrollbar text-gray-200 whitespace-pre-wrap">
+                    <!-- Exiftool output will be streamed here -->
+                    Awaiting Exiftool command execution...
+                </div>
+                <div id="status_message" class="status-message hidden"></div>
+            </div>
+        </div>
+
+        <!-- Examples Tab Content -->
+        <div id="examples" class="tab-content bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-3xl font-bold text-center mb-6 text-blue-400">Exiftool Examples</h2>
+            <div id="examples_list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Examples will be loaded here by JavaScript -->
+                Loading examples...
+            </div>
+        </div>
+
+        <!-- Installation Tab Content -->
+        <div id="installation" class="tab-content bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+            <h2 class="text-3xl font-bold text-center mb-6 text-blue-400">Exiftool Installation Guide</h2>
+            <p class="text-gray-300 mb-6 text-center">
+                Exiftool is a powerful command-line tool for reading, writing, and editing meta information in a wide variety of files.
+                It is essential for digital forensics, cybersecurity, and data privacy tasks.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <button id="install_exiftool_linux_button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i data-lucide="linux" class="w-5 h-5"></i> Install on Linux (APT)
+                </button>
+                <button id="install_exiftool_termux_button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i data-lucide="terminal" class="w-5 h-5"></i> Install on Termux (PKG)
+                </button>
+                <button id="download_exiftool_windows_button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i data-lucide="windows" class="w-5 h-5"></i> Windows Manual Install
+                </button>
+                <button id="download_exiftool_macos_button" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-colors duration-200 flex items-center justify-center gap-2">
+                    <i data-lucide="apple" class="w-5 h-5"></i> macOS Manual Install
+                </button>
+            </div>
+
+            <div id="installation_details" class="bg-gray-700 p-6 rounded-lg shadow-inner">
+                <h3 class="text-2xl font-semibold mb-4 text-blue-300">Installation Steps</h3>
+                <div id="installation_output" class="installation-output">
+                    Select an operating system to see installation instructions or automatic installation progress.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="message_modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeMessageModal()">&times;</span>
+            <h3 id="modal_title" class="text-xl font-bold mb-4"></h3>
+            <p id="modal_message" class="mb-4"></p>
+            <div id="modal_output" class="installation-output hidden"></div>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" onclick="closeMessageModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global variables
+        let currentProcessId = null;
+        let outputInterval = null;
+        let uploadedFileId = null; // To store the ID of the uploaded file on the server
+
+        // Function to open tabs
+        function openTab(evt, tabName) {
+            // Declare all variables
+            var i, tabcontent, tablinks;
+
+            // Get all elements with class="tab-content" and hide them
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Get all elements with class="tab-button" and remove the "active" class
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab, and add an "active" class to the button that opened the tab
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+
+            // If switching to the installation tab, update installation details
+            if (tabName === 'installation') {
+                updateInstallationDetails();
+            }
+        }
+
+        // Function to show status messages
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status_message');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000); // Hide after 5 seconds
+        }
+
+        // Modal functions
+        function showMessageModal(title, message, output = '') {
+            document.getElementById('modal_title').textContent = title;
+            document.getElementById('modal_message').textContent = message;
+            const modalOutput = document.getElementById('modal_output');
+            if (output) {
+                modalOutput.textContent = output;
+                modalOutput.classList.remove('hidden');
+            } else {
+                modalOutput.classList.add('hidden');
+            }
+            document.getElementById('message_modal').style.display = 'flex';
+        }
+
+        function closeMessageModal() {
+            document.getElementById('message_modal').style.display = 'none';
+        }
+
+        // Generate Exiftool Command
+        function generateCommand() {
+            let command = ['exiftool'];
+            const targetPath = document.getElementById('target_path_entry').value.trim();
+            const uploadedFileId = document.getElementById('uploaded_file_id').value;
+
+            // Read Options
+            if (document.getElementById('read_all_tags_var').checked) command.push('-a');
+            if (document.getElementById('group_info_var').checked) command.push('-G');
+            if (document.getElementById('short_output_var').checked) command.push('-s');
+            if (document.getElementById('unknown_tags_var').checked) command.push('-u');
+            if (document.getElementById('extract_embedded_var').checked) command.push('-ee');
+            if (document.getElementById('hex_output_var').checked) command.push('-H');
+            if (document.getElementById('list_unknown_var').checked) command.push('-l');
+            if (document.getElementById('list_xmp_var').checked) command.push('-listx');
+            if (document.getElementById('list_filetypes_var').checked) command.push('-listf');
+            if (document.getElementById('list_groups_var').checked) command.push('-listg');
+            if (document.getElementById('list_directories_var').checked) command.push('-listd');
+
+            // Write/Modify/Delete Options
+            const customTagWrite = document.getElementById('custom_tag_write_entry').value.trim();
+            if (customTagWrite) {
+                command.push(customTagWrite);
+            }
+            if (document.getElementById('delete_all_metadata_var').checked) command.push('-all=');
+
+            // Output Options
+            const outputFormat = document.getElementById('output_format_select').value;
+            if (outputFormat) command.push(outputFormat);
+
+            // Advanced/Forensic Options
+            if (document.getElementById('recurse_subdirs_var').checked) command.push('-r');
+            if (document.getElementById('read_compressed_var').checked) command.push('-z');
+            if (document.getElementById('fast_processing_var').checked) command.push('-fast');
+            if (document.getElementById('preserve_datetime_var').checked) command.push('-P');
+            if (document.getElementById('overwrite_original_var').checked) command.push('-overwrite_original');
+
+            const extensionFilter = document.getElementById('extension_filter_entry').value.trim();
+            if (extensionFilter) {
+                const extensions = extensionFilter.split(',').map(ext => `-ext ${ext.trim()}`).join(' ');
+                command.push(...extensions.split(' ')); // Split again to add each -ext as a separate argument
+            }
+
+            // Verbosity
+            const verbosity = document.querySelector('input[name="verbosity_options"]:checked').value;
+            if (verbosity) command.push(verbosity);
+
+            // Custom Options
+            const customOptions = document.getElementById('custom_options_entry').value.trim();
+            if (customOptions) {
+                command.push(...shlexSplit(customOptions)); // Use shlexSplit for custom options
+            }
+
+            // The target file/path is handled separately during the fetch request,
+            // but for display purposes, we can show it here if available.
+            let displayCommand = [...command];
+            if (uploadedFileId) {
+                displayCommand.push(document.getElementById('uploaded_file_info').textContent.split(': ')[1]); // Show filename
+            } else if (targetPath) {
+                displayCommand.push(targetPath);
+            }
+
+            document.getElementById('generated_command').textContent = displayCommand.join(' ').trim();
+        }
+
+        // Simple shlex.split equivalent for JavaScript
+        function shlexSplit(s) {
+            const result = [];
+            let inQuote = false;
+            let current = '';
+            for (let i = 0; i < s.length; i++) {
+                const char = s[i];
+                if (char === ' ' && !inQuote) {
+                    if (current !== '') {
+                        result.push(current);
+                        current = '';
+                    }
+                } else if (char === '"' || char === "'") {
+                    inQuote = !inQuote;
+                    // Optionally, include quotes in the output if needed for exiftool
+                    // current += char;
+                } else {
+                    current += char;
+                }
+            }
+            if (current !== '') {
+                result.push(current);
+            }
+            return result;
+        }
+
+
+        // Run Exiftool
+        async function runExiftool() {
+            const runButton = document.getElementById('run_exiftool_button');
+            runButton.disabled = true;
+            runButton.innerHTML = '<i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i> Running...';
+            lucide.createIcons(); // Re-render icons after changing innerHTML
+
+            const outputArea = document.getElementById('output_area');
+            outputArea.textContent = 'Starting Exiftool command...\n';
+            showStatus('Exiftool command started...', 'info');
+
+            const targetPath = document.getElementById('target_path_entry').value.trim();
+            const outputFilename = document.getElementById('output_file_entry').value.trim();
+            const exiftoolCommand = document.getElementById('generated_command').textContent.replace(/^exiftool /, '').trim(); // Get options only
+
+            const formData = new FormData();
+            formData.append('exiftool_command', exiftoolCommand);
+            formData.append('target_path', targetPath);
+            formData.append('output_filename', outputFilename);
+            if (uploadedFileId) {
+                formData.append('target_file_id', uploadedFileId);
+            }
+
+            try {
+                const response = await fetch('/run_exiftool', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentProcessId = result.process_id;
+                    showStatus(result.message, 'success');
+                    outputArea.textContent += `Process ID: ${currentProcessId}\n\n`;
+                    startOutputStreaming(currentProcessId);
+                } else {
+                    outputArea.textContent += `Error: ${result.message}\nOutput: ${result.output || 'N/A'}\n`;
+                    showStatus(`Error: ${result.message}`, 'error');
+                    runButton.disabled = false;
+                    runButton.innerHTML = '<i data-lucide="play" class="w-5 h-5"></i> Run Exiftool';
+                    lucide.createIcons();
+                }
+
+            } catch (error) {
+                console.error('Error running Exiftool:', error);
+                outputArea.textContent += `An error occurred: ${error.message}\n`;
+                showStatus('An error occurred while running Exiftool.', 'error');
+                runButton.disabled = false;
+                runButton.innerHTML = '<i data-lucide="play" class="w-5 h-5"></i> Run Exiftool';
+                lucide.createIcons();
+            }
+        }
+
+        // Stream output
+        async function startOutputStreaming(processId) {
+            if (outputInterval) {
+                clearInterval(outputInterval);
+            }
+
+            const outputArea = document.getElementById('output_area');
+            let lastLength = outputArea.textContent.length; // Track content length to append new data
+
+            const fetchOutput = async () => {
+                try {
+                    const response = await fetch(`/stream_output/${processId}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        outputArea.textContent += `\nError streaming output: ${errorText}\n`;
+                        showStatus('Error streaming output.', 'error');
+                        clearInterval(outputInterval);
+                        document.getElementById('run_exiftool_button').disabled = false;
+                        document.getElementById('run_exiftool_button').innerHTML = '<i data-lucide="play" class="w-5 h-5"></i> Run Exiftool';
+                        lucide.createIcons();
+                        return;
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let done = false;
+                    let buffer = '';
+
+                    while (!done) {
+                        const { value, done: readerDone } = await reader.read();
+                        done = readerDone;
+                        buffer += decoder.decode(value, { stream: !done });
+
+                        // Process buffer line by line
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // Keep incomplete last line in buffer
+
+                        for (const line of lines) {
+                            if (line === "---PROCESS_COMPLETE---") {
+                                clearInterval(outputInterval);
+                                document.getElementById('run_exiftool_button').disabled = false;
+                                document.getElementById('run_exiftool_button').innerHTML = '<i data-lucide="play" class="w-5 h-5"></i> Run Exiftool';
+                                lucide.createIcons();
+                                outputArea.textContent += '\n--- Exiftool command finished ---\n';
+                                outputArea.scrollTop = outputArea.scrollHeight;
+                                showStatus('Exiftool command completed.', 'success');
+                                return;
+                            }
+                            outputArea.textContent += line + '\n';
+                            outputArea.scrollTop = outputArea.scrollHeight; // Auto-scroll to bottom
+                        }
+                    }
+
+                    // After loop, process any remaining buffer content
+                    if (buffer) {
+                        outputArea.textContent += buffer + '\n';
+                        outputArea.scrollTop = outputArea.scrollHeight;
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching stream:', error);
+                    outputArea.textContent += `\nConnection error: ${error.message}\n`;
+                    showStatus('Connection error during streaming.', 'error');
+                    clearInterval(outputInterval);
+                    document.getElementById('run_exiftool_button').disabled = false;
+                    document.getElementById('run_exiftool_button').innerHTML = '<i data-lucide="play" class="w-5 h-5"></i> Run Exiftool';
+                    lucide.createIcons();
+                }
+            };
+
+            // Poll for output every 500ms
+            outputInterval = setInterval(fetchOutput, 500);
+        }
+
+        // File Upload Handler
+        async function handleFileUpload(event) {
+            const fileInput = event.target;
+            const file = fileInput.files[0];
+            const uploadedFileInfo = document.getElementById('uploaded_file_info');
+            const uploadedFileIdInput = document.getElementById('uploaded_file_id');
+
+            if (!file) {
+                uploadedFileInfo.textContent = '';
+                uploadedFileIdInput.value = '';
+                uploadedFileId = null;
+                generateCommand();
+                return;
+            }
+
+            uploadedFileInfo.textContent = `Uploading ${file.name}...`;
+            showStatus(`Uploading ${file.name}...`, 'info');
+
+            const formData = new FormData();
+            formData.append('target_file', file);
+
+            try {
+                const response = await fetch('/upload_file', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    uploadedFileId = result.file_id;
+                    uploadedFileIdInput.value = result.file_id;
+                    uploadedFileInfo.textContent = `Uploaded File: ${result.filename} (ID: ${result.file_id})`;
+                    showStatus(`File '${result.filename}' uploaded successfully.`, 'success');
+                    generateCommand(); // Regenerate command to include uploaded file
+                } else {
+                    uploadedFileInfo.textContent = `Upload failed: ${result.message}`;
+                    uploadedFileIdInput.value = '';
+                    uploadedFileId = null;
+                    showStatus(`File upload failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                uploadedFileInfo.textContent = `Upload failed: ${error.message}`;
+                uploadedFileIdInput.value = '';
+                uploadedFileId = null;
+                showStatus('An error occurred during file upload.', 'error');
+            }
+        }
+
+        // Load Examples
+        async function loadExamples() {
+            try {
+                const response = await fetch('/get_examples');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const examples = await response.json();
+                const examplesListDiv = document.getElementById('examples_list');
+                examplesListDiv.innerHTML = ''; // Clear loading message
+
+                if (examples.length === 0) {
+                    examplesListDiv.innerHTML = '<p class="text-center col-span-full text-gray-400">No examples found. Please ensure exiftool_examples.txt exists and is correctly formatted.</p>';
+                    return;
+                }
+
+                examples.forEach(example => {
+                    const exampleCard = document.createElement('div');
+                    exampleCard.className = 'bg-gray-700 p-4 rounded-lg shadow-md border border-gray-600';
+                    exampleCard.innerHTML = `
+                        <h3 class="text-xl font-semibold mb-2 text-blue-200">${example.name}</h3>
+                        <p class="text-gray-300 text-sm mb-3">${example.description}</p>
+                        <div class="bg-gray-800 p-3 rounded-md mb-3 overflow-x-auto">
+                            <code class="text-green-400 text-sm">${example.command}</code>
+                        </div>
+                        <button class="copy-command-button bg-gray-600 hover:bg-gray-500 text-white text-sm py-1 px-3 rounded-full flex items-center gap-1 transition-colors duration-200" data-command="${example.command}">
+                            <i data-lucide="copy" class="w-4 h-4"></i> Copy Command
+                        </button>
+                    `;
+                    examplesListDiv.appendChild(exampleCard);
+                });
+                lucide.createIcons(); // Re-render icons for new buttons
+
+                // Add event listeners for copy buttons
+                document.querySelectorAll('.copy-command-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const commandToCopy = e.currentTarget.dataset.command;
+                        navigator.clipboard.writeText(commandToCopy).then(() => {
+                            showStatus('Command copied to clipboard!', 'success');
+                        }).catch(err => {
+                            console.error('Failed to copy command: ', err);
+                            showStatus('Failed to copy command.', 'error');
+                        });
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error loading examples:', error);
+                document.getElementById('examples_list').innerHTML = `<p class="text-center col-span-full text-red-400">Failed to load examples: ${error.message}</p>`;
+                showStatus('Failed to load examples.', 'error');
+            }
+        }
+
+        // Installation functions
+        async function handleExiftoolInstallation(osType) {
+            const installButton = document.getElementById(`install_exiftool_${osType}_button`) || document.getElementById(`download_exiftool_${osType}_button`);
+            const installationOutputDiv = document.getElementById('installation_output');
+            
+            if (installButton) {
+                installButton.disabled = true;
+                installButton.innerHTML = `<i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i> Installing...`;
+                lucide.createIcons();
+            }
+            installationOutputDiv.textContent = `Attempting to install Exiftool for ${osType.toUpperCase()}... Please wait.\n`;
+            showStatus(`Initiating installation for ${osType.toUpperCase()}...`, 'info');
+
+            try {
+                const response = await fetch('/install_exiftool', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ os_type: osType })
+                });
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    installationOutputDiv.textContent += `\n${result.message}\n\nOutput:\n${result.output}`;
+                    showMessageModal('Exiftool Installation', result.message, result.output);
+                    showStatus('Exiftool installed successfully!', 'success');
+                } else if (result.status === 'info') {
+                    installationOutputDiv.textContent += `\n${result.message}\n\nManual Steps:\n${getManualInstallationSteps(osType)}`;
+                    showMessageModal('Exiftool Manual Installation', result.message, getManualInstallationSteps(osType));
+                    showStatus('Manual installation steps provided.', 'warning');
+                } else {
+                    installationOutputDiv.textContent += `\nError: ${result.message}\n\nOutput:\n${result.output}`;
+                    showMessageModal('Exiftool Installation Error', `Failed to install Exiftool: ${result.message}`, result.output);
+                    showStatus(`Installation failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error during installation:', error);
+                installationOutputDiv.textContent += `\nAn error occurred during installation: ${error.message}`;
+                showMessageModal('Exiftool Installation Error', 'An unexpected error occurred during installation.', error.message);
+                showStatus('An unexpected error occurred during installation.', 'error');
+            } finally {
+                if (installButton) {
+                    installButton.disabled = false;
+                    installButton.innerHTML = (osType === 'windows' || osType === 'macos') ? 
+                        `<i data-lucide="${osType === 'windows' ? 'windows' : 'apple'}" class="w-5 h-5"></i> ${osType.capitalize()} Manual Install` :
+                        `<i data-lucide="${osType === 'linux' ? 'linux' : 'terminal'}" class="w-5 h-5"></i> Install on ${osType.capitalize()}`;
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function getManualInstallationSteps(osType) {
+            switch (osType) {
+                case 'windows':
+                    return `
+1.  **Download:** Go to the official Exiftool website: <a href="https://exiftool.org/" target="_blank" class="text-blue-400 hover:underline">exiftool.org</a>
+2.  **Download Windows Executable:** Look for the "Windows Executable" link (usually named something like "exiftool-*-windows.zip").
+3.  **Extract:** Unzip the downloaded file. You'll find a file named 'exiftool(-k).exe'.
+4.  **Rename:** Rename 'exiftool(-k).exe' to 'exiftool.exe'.
+5.  **Add to PATH (Recommended):**
+    * Create a new folder, e.g., C:\\exiftool, and place 'exiftool.exe' inside it.
+    * Search for "Environment Variables" in Windows Start Menu and open "Edit the system environment variables".
+    * Click "Environment Variables..." button.
+    * Under "System variables", find the "Path" variable and click "Edit...".
+    * Click "New" and add the path to your exiftool folder (e.g., C:\\exiftool).
+    * Click OK on all windows to save changes.
+6.  **Verify:** Open a new Command Prompt or PowerShell and type \`exiftool -ver\`. It should show the version number.
+                    `;
+                case 'macos':
+                    return `
+1.  **Install Homebrew (if not already installed):**
+    Open Terminal and run:
+    \`\`\`bash
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    \`\`\`
+    Follow the on-screen instructions.
+2.  **Install Exiftool via Homebrew:**
+    Once Homebrew is installed, run:
+    \`\`\`bash
+    brew update
+    brew install exiftool
+    \`\`\`
+3.  **Verify:** Open a new Terminal window and type \`exiftool -ver\`. It should show the version number.
+                    `;
+                default:
+                    return 'No manual installation steps available for this OS type through this interface.';
+            }
+        }
+
+        function updateInstallationDetails() {
+            const os = navigator.platform.toLowerCase();
+            const installationOutputDiv = document.getElementById('installation_output');
+            
+            if (os.includes('linux')) {
+                installationOutputDiv.textContent = `Detected OS: Linux. You can use the "Install on Linux (APT)" button for automatic installation (requires sudo).`;
+            } else if (os.includes('android') && navigator.userAgent.includes('Termux')) {
+                installationOutputDiv.textContent = `Detected OS: Termux. You can use the "Install on Termux (PKG)" button for automatic installation.`;
+            } else if (os.includes('win')) {
+                installationOutputDiv.textContent = `Detected OS: Windows. Please use the "Windows Manual Install" button for detailed instructions.`;
+            } else if (os.includes('mac')) {
+                installationOutputDiv.textContent = `Detected OS: macOS. Please use the "macOS Manual Install" button for detailed instructions.`;
+            } else {
+                installationOutputDiv.textContent = `Detected OS: ${navigator.platform}. Automatic installation is not supported for your operating system. Please install Exiftool manually.`;
+            }
+        }
+
+
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial tab
+            openTab({ currentTarget: document.querySelector('.tab-button.active') }, 'exiftool-options');
+
+            // Event listeners for command generation
+            document.querySelectorAll('#exiftool-options input[type="checkbox"], #exiftool-options input[type="radio"], #exiftool-options input[type="text"], #exiftool-options select').forEach(element => {
+                element.addEventListener('input', generateCommand);
+                element.addEventListener('change', generateCommand); // For select and checkbox changes
+            });
+
+            document.getElementById('target_file_upload').addEventListener('change', handleFileUpload);
+            document.getElementById('run_exiftool_button').addEventListener('click', runExiftool);
+            
+            // New event listeners for specific installation buttons
+            document.getElementById('install_exiftool_linux_button').addEventListener('click', () => handleExiftoolInstallation('linux'));
+            document.getElementById('install_exiftool_termux_button').addEventListener('click', () => handleExiftoolInstallation('termux'));
+            document.getElementById('download_exiftool_windows_button').addEventListener('click', () => handleExiftoolInstallation('windows'));
+            document.getElementById('download_exiftool_macos_button').addEventListener('click', () => handleExiftoolInstallation('macos'));
+
+            loadExamples(); // Load examples for the Examples tab
+            generateCommand(); // Generate command on page load (will be 'exiftool' only)
+        });
+    </script>
+</body>
+</html>
